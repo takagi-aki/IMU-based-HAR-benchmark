@@ -84,6 +84,7 @@ Available Datasets specifications are
 - ['mighar']                                        # memory should be >= 64 GiB. 128 GiB is recommended. 
 - ['mighar-offset_calib']                           # Using Offset calibrated data instead of raw data.
 - ['uschad']                                        
+- ['motion_sense']                                  
 ```
 
 ## Suffix options 
@@ -98,7 +99,7 @@ If add the following suffix for a dataset specification, the sensors included in
 For example, if \['pamap2-separation'\] is specified, since the pamap2 including three sensors, three samples are generated on time _t_.
 In contrast to that, if \['pamap2'\] is specified, one sample including data of the three sensors is generated on time _t_.
 If \['pamap2-separation\_0\_2'\] is specified, two samples from sensors 0 and 2 are generated on time _t_.
-If \['pamap2-separation\_with\_id'\] is specified, three samples are generated on time _t_; however, each sample has a sensor ID value, such as 0, 1, and 2, on an additional channel placed on the last. 
+If \['pamap2-separation\_with\_sid'\] is specified, three samples are generated on time _t_; however, each sample has a sensor ID value, such as 0, 1, and 2, on an additional channel placed on the last. 
 The last channel is filled by an identical value.
 This extra values should be removed at input mapping phases of DNN.
 
@@ -108,7 +109,7 @@ If add the following suffix for a dataset specification, samples generated for t
 ```-combination_0_1_2_3...[_with_sid]```
 
 For example, if \['pamap2-combination\_0\_2'\] is specified, since the pamap2 including three sensors, generated sampels are consists of the values from these two specified sensors.
-If \['pamap2--combination\_0\_2\_with\_id'\] is specified, each sample has sensor ID values, such as 0 and 2, for each axis.
+If \['pamap2--combination\_0\_2\_with\_sid'\] is specified, each sample has sensor ID values, such as 0 and 2, for each axis.
 The sensor IDs are placed on a extra entry of window. For example, if the data has a shape [100, 256, 6], meaning 100 samples with 256 window length with 6 channels, the shape will be changed for [100, 25*7*, 6]. 
 The extra entries placed on \[:, 256, :\] have sensor ID values. For example, \[0, 0, 0, 2, 2, 2\]. 
 This extra values should be removed at input mapping phases of DNN.
@@ -122,6 +123,8 @@ The following sort is suitable to run LOSOCV, \[f'pamap2-losocv_{i}' for i in ra
 
 Several DataReaders do not support this LOSOCV option, such as the DataReader for the Opportunity. 
 
+### Note
+The combination and separation sensor options can be used to select a single sensor from many. E.g., \['pamap2-separation\_0'\] and \['pamap2-combination\_0'\].
 
 ## Links for the datasets
 - [Daphnet](https://doi.org/10.24432/C56K78)
@@ -133,10 +136,13 @@ Several DataReaders do not support this LOSOCV option, such as the DataReader fo
 - [mHealth](https://doi.org/10.24432/C5TW22)
 - [MIG-HAR](https://github.com/eno-lab/Meshed_IMU_Garment_HAR_Dataset)
 - [USC-HAD](https://sipi.usc.edu/had/)
+- [MotionSense](https://github.com/mmalekzadeh/motion-sense)
 
-## How to locate the downloaded files
+## How to locate the downloaded dataset files
 
-Please see [dataset\_file\_list.txt](dataset_file_list.txt).
+Please put downloaded or decompressed datasets into the dataset directory as is, such as via drag and drop.
+The expected file paths are listed in [dataset\_file\_list.txt](dataset_file_list.txt).
+Please see this to check how to locate downloaded dataset files.
 
 # Directories
 ```
