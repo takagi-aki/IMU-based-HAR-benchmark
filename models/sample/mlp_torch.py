@@ -1,7 +1,8 @@
 import torch
 from torch import nn
+from torch_utils import TrialModel, BasicTrialModel
 
-class SimpleNLP(nn.Module):
+class SimpleMLP(nn.Module):
 
     def __init__(self, x_shape, n_classes) -> None:
         super().__init__()
@@ -26,13 +27,13 @@ def get_config(dataset, lr_magnif=1):
     return {'learning_rate': 0.001 * lr_magnif, 'regularization_rate': None}
 
 
-def gen_model(input_shape, n_classes, out_loss, out_activ, metrics, config):
-    return SimpleNLP(input_shape, n_classes)
+def gen_model(input_shape, n_classes, out_loss, out_activ, metrics, config) -> TrialModel:
+    return BasicTrialModel(SimpleMLP(input_shape, n_classes), out_loss=out_loss, out_activ=out_activ)
 
 
-def gen_preconfiged_model(input_shape, n_classes, out_loss, out_activ, dataset, metrics=['accuracy'], lr_magnif=1):
+def gen_preconfiged_model(input_shape, n_classes, out_loss, out_activ, dataset, metrics=['accuracy'], lr_magnif=1) -> TrialModel:
     config = get_config(dataset, lr_magnif)
-    return SimpleNLP(input_shape, n_classes), config
+    return gen_model(input_shape, n_classes, out_loss, out_activ, metrics), config
 
 
 def get_optim_config(dataset, trial, lr_magnif=1):

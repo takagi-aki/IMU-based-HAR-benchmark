@@ -118,7 +118,7 @@ elif framework_name == 'pytorch':
     if 'plot_metrics' not in globals():
         from utils import plot_metrics
 
-    from torch_utils import save_model
+    from torch_utils import save_model, TrialModel
 
     from utils import calc_class_weight
 
@@ -247,7 +247,7 @@ for dataset in datasets:
                             if args.pretrained_model is not None:
                                 model = tf.keras.saving.load_model(args.pretrained_model)
                             else:
-                                model = mod.gen_model(input_shape, n_classes, out_loss, out_activ, METRICS, hyperparameters)
+                                model:TrialModel = mod.gen_model(input_shape, n_classes, out_loss, out_activ, METRICS, hyperparameters)
                         elif pass_n == 2:
                             model = tf.keras.saving.load_model(best_model_weight_path)
 
@@ -286,40 +286,13 @@ for dataset in datasets:
                         elif framework_name == 'pytorch':
 
                             # TODO: add Tensorbord support
-
-                            model:torch.nn.Module
-                            optim:torch.optim.Optimizer = torch.optim.Adam(model.parameters(), lr=hyperparameters['learning_rate'])
+                            model: TrialModel
+                            optim = model.on_fit_start(
+                                **{'class_weight':calc_class_weight(y_train) if not clw else None,
+                                   'out_loss':out_loss,
+                                   'out_activ':out_activ},
+                                **hyperparameters)
                             scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optim, mode='min', factor=args.lr_magnif_on_plateau, patience=10, min_lr=1e-7)
-
-                            class TrialModel(nn.Module):
-                                def __init__(self, base, out_loss, out_activ, class_weight=None) -> None:
-                                    super().__init__()
-                                    self.base = base
-                                    if out_loss == 'categorical_crossentropy':
-                                        if(class_weight is not None):
-                                            _w = torch.Tensor(class_weight)
-                                        else:
-                                            _w = None
-                                        self.lossfunc_train:torch.nn.BCELoss = torch.nn.BCELoss(weight=_w).to(torch_device)
-                                        self.lossfunc_test:torch.nn.BCELoss = torch.nn.BCELoss(weight=None).to(torch_device)
-                                    else:
-                                        raise NotImplementedError(f'This loss func option [{out_loss}] is not implemented by pytorch mode.')
-                                    
-                                    if out_activ == 'softmax':
-                                        self.activfunc = nn.Softmax().to(torch_device)
-                                    else:
-                                        raise NotImplementedError(f'This activation func option [{out_activ}] is not implemented by pytorch mode.')
-
-                                def forward(self, x, y):
-                                    pred = self.activfunc(self.base(x))
-                                    if self.training:
-                                        loss = self.lossfunc_train(pred, y)
-                                    else:
-                                        loss = self.lossfunc_test(pred, y)
-                                    #loss *= y_weight
-                                    return pred, loss
-                            
-                            try_model = TrialModel(model, out_loss, out_activ, calc_class_weight(y_train) if not clw else None)
 
                             def summarize_loss(loss):
                                 return torch.sum(loss).item()
@@ -354,16 +327,19 @@ for dataset in datasets:
                             early_stop_no_implovement_count = 0
                             early_stop_target_idx = 0
 
+
                             for epoch in range(0, epochs):
-                                try_model.to(torch_device)
+
+                                model.to(torch_device)
+                                model.train()
 
                                 print(f'Epoch: {epoch}', end='')
                                 history.epoch.append(epoch)
 
                                 # train
-                                try_model.train()
-                                try_model.zero_grad()
-                                pred, loss = try_model(X_tr, y_tr)
+                                model.train()
+                                model.zero_grad()
+                                pred, loss = model.train_batch(X_tr, y_tr)
 
                                 # logging train result
                                 hist['loss'].append(summarize_loss(loss))
@@ -373,8 +349,8 @@ for dataset in datasets:
                                 optim.step()
 
                                 # validate
-                                try_model.eval()
-                                pred, loss = try_model(X_tes, y_tes)
+                                model.eval()
+                                pred, loss = model.test_batch(X_tes, y_tes)
 
                                 # logging validation result
                                 hist['val_loss'].append(summarize_loss(loss))
@@ -389,7 +365,7 @@ for dataset in datasets:
 
                                 # save best model
                                 if(hist[best_model_monitor][best_model_idx] > hist[best_model_monitor][-1]):
-                                    save_model(model, save_name)
+                                    save_model(model.mod, save_name)
                                     best_model_path = save_name
                                     best_model_idx = epoch
 
@@ -416,7 +392,7 @@ for dataset in datasets:
                     if framework_name == 'tensorflow':
                         model.summary(print_fn=lambda x: model_str.append(x))
                     if framework_name == 'pytorch':
-                        model_str.append(repr(torchinfo.summary(model, input_size=X_train.shape)))
+                        model_str.append(repr(torchinfo.summary(model.mod, input_size=X_train.shape)))
 
                     report.write("\n".join(model_str))
                     report.write('\n\n')
@@ -441,7 +417,7 @@ for dataset in datasets:
                             if framework_name == 'tensorflow':
                                 model.load_weights(best_model_path) 
                             elif framework_name == 'pytorch':
-                                model.load_state_dict(torch.load(best_model_path))
+                                model.mod.load_state_dict(torch.load(best_model_path))
                             else:
                                 raise NotImplementedError("Invalid DNN framework is specified. {framework_name=}")
 
@@ -477,9 +453,7 @@ for dataset in datasets:
                             X_tes = torch.Tensor(X_test).to(torch_device)
                             y_tes = torch.Tensor(y_test).to(torch_device)
 
-                            try_model = TrialModel(model, out_loss, out_activ)
-                            try_model.eval()
-                            pred, loss = try_model(X_tes, y_tes)
+                            pred, loss = model.test_batch(X_tes, y_tes)
 
                             scores = [summarize_loss(loss), calc_acc(pred, y_tes)]
                             predictions = torch.argmax(pred, dim=1).cpu().detach().numpy()
