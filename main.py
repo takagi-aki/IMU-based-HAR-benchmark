@@ -247,7 +247,7 @@ for dataset in datasets:
                             if args.pretrained_model is not None:
                                 model = tf.keras.saving.load_model(args.pretrained_model)
                             else:
-                                model:TrialModel = mod.gen_model(input_shape, n_classes, out_loss, out_activ, METRICS, hyperparameters)
+                                model = mod.gen_model(input_shape, n_classes, out_loss, out_activ, METRICS, hyperparameters)
                         elif pass_n == 2:
                             model = tf.keras.saving.load_model(best_model_weight_path)
 
@@ -303,8 +303,8 @@ for dataset in datasets:
                             # make dataset into torch.Tensor
                             X_tr = torch.Tensor(X_train).to(torch_device)
                             y_tr = torch.Tensor(y_train).to(torch_device)
-                            X_tes = torch.Tensor(X_val).to(torch_device)
-                            y_tes = torch.Tensor(y_val).to(torch_device)
+                            X_vald = torch.Tensor(X_val).to(torch_device)
+                            y_vald = torch.Tensor(y_val).to(torch_device)
 
                             # initialize keras like history object
                             history = types.SimpleNamespace()
@@ -339,7 +339,7 @@ for dataset in datasets:
                                 # train
                                 model.train()
                                 model.zero_grad()
-                                pred, loss = model.train_batch(X_tr, y_tr)
+                                pred, loss = model.on_train_batch(X_tr, y_tr)
 
                                 # logging train result
                                 hist['loss'].append(summarize_loss(loss))
@@ -350,11 +350,11 @@ for dataset in datasets:
 
                                 # validate
                                 model.eval()
-                                pred, loss = model.test_batch(X_tes, y_tes)
+                                pred, loss = model.on_test_batch(X_vald, y_vald)
 
                                 # logging validation result
                                 hist['val_loss'].append(summarize_loss(loss))
-                                hist['val_accuracy'].append(calc_acc(pred, y_tes))
+                                hist['val_accuracy'].append(calc_acc(pred, y_vald))
 
                                 # end one epoch
                                 # reduce optimizer lr if required
@@ -453,9 +453,9 @@ for dataset in datasets:
                             X_tes = torch.Tensor(X_test).to(torch_device)
                             y_tes = torch.Tensor(y_test).to(torch_device)
 
-                            pred, loss = model.test_batch(X_tes, y_tes)
+                            pred, loss = model.on_test_batch(X_tes, y_tes)
 
-                            scores = [summarize_loss(loss), calc_acc(pred, y_tes)]
+                            scores = [summarize_loss(loss), calc_acc(pred, y_vald)]
                             predictions = torch.argmax(pred, dim=1).cpu().detach().numpy()
                         else:
                             raise NotImplementedError("Invalid DNN framework is specified. {framework_name=}")

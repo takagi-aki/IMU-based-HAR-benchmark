@@ -16,13 +16,13 @@ class TrialModel(nn.Module):
         #       return torch.optim.Optimizer
         raise NotImplementedError(f'TrialModel is interfce. Define TrialModel child and implement code.')
 
-    def train_batch(self, x, y) -> tuple[torch.Tensor, torch.Tensor]:
+    def on_train_batch(self, x, y) -> tuple[torch.Tensor, torch.Tensor]:
         # NOTE: Implement behavior on training.
         #       Then, return prediction and loss.
         raise NotImplementedError(f'TrialModel is interfce. Define TrialModel child and implement code.')
 
 
-    def test_batch(self, x, y) -> tuple[torch.Tensor, torch.Tensor]:
+    def on_test_batch(self, x, y) -> tuple[torch.Tensor, torch.Tensor]:
         # NOTE: Implement behavior on test/validation.
         #       Then, return prediction and loss.
         raise NotImplementedError(f'TrialModel is interfce. Define TrialModel child and implement code.')
@@ -50,12 +50,12 @@ class BasicTrialModel(TrialModel):
         
         return torch.optim.Adam(self.mod.parameters(), lr=learning_rate)
 
-    def train_batch(self, x, y):
+    def on_train_batch(self, x, y):
         pred = self.activfunc(self.mod(x))
         loss = self.lossfunc_train(pred, y)
         return pred, loss
 
-    def test_batch(self, x, y):
+    def on_test_batch(self, x, y):
         pred = self.activfunc(self.mod(x))
         loss = self.lossfunc_test(pred, y)
         return pred, loss
