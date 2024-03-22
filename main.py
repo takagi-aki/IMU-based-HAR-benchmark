@@ -286,7 +286,12 @@ for dataset in datasets:
 
                         elif framework_name == 'pytorch':
 
-                            # TODO: add Tensorbord support
+                            # initialize tensroboard 
+                            from torch.utils.tensorboard import SummaryWriter
+
+                            writer = SummaryWriter()
+
+                            # initialize models 
                             model: TrialModel
                             optim = model.on_fit_start(
                                 **{'class_weight':calc_class_weight(y_train) if not clw else None,
@@ -364,6 +369,12 @@ for dataset in datasets:
                                 # display epoch result
                                 print(f', train_loss: {hist["loss"][-1]:.3g}, train_acc: {hist["accuracy"][-1]:.3g}, test_loss: {hist["val_loss"][-1]:.3g}, test_acc: {hist["val_accuracy"][-1]:.3g}, lr: {scheduler.get_last_lr()}')
 
+                                # write tensroboard log
+                                writer.add_scalar('Loss/train', hist["loss"][-1], epoch)
+                                writer.add_scalar('Loss/test', hist["val_loss"][-1], epoch)
+                                writer.add_scalar('Accuracy/train', hist["accuracy"][-1], epoch)
+                                writer.add_scalar('Accuracy/test', hist["val_accuracy"][-1], epoch)
+
                                 # save best model
                                 if(hist[best_model_monitor][best_model_idx] > hist[best_model_monitor][-1]):
                                     save_model(model.mod, save_name)
@@ -378,6 +389,9 @@ for dataset in datasets:
                                     early_stop_no_implovement_count += 1
                                     if early_stop_no_implovement_count > early_stop_patience and epochs >= args.boot_strap_epochs:
                                         break
+
+                            # release tensroboard
+                            writer.close()
 
                         else:
                             raise NotImplementedError("Invalid DNN framework is specified. {framework_name=}")
