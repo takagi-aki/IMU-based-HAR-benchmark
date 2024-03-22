@@ -175,6 +175,7 @@ for dataset in datasets:
         ]
 
         def objective(trial):
+            global np
 
             if trial is not None:
                 file_prefix = f'{_file_prefix}_trial-{trial.number}'
@@ -455,7 +456,7 @@ for dataset in datasets:
 
                             pred, loss = model.on_test_batch(X_tes, y_tes)
 
-                            scores = [summarize_loss(loss), calc_acc(pred, y_vald)]
+                            scores = [summarize_loss(loss), calc_acc(pred, y_tes)]
                             predictions = torch.argmax(pred, dim=1).cpu().detach().numpy()
                         else:
                             raise NotImplementedError("Invalid DNN framework is specified. {framework_name=}")

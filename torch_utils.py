@@ -34,7 +34,7 @@ class BasicTrialModel(TrialModel):
 
     def on_fit_start(self, class_weight, learning_rate, **args):
         if self.out_activ == 'softmax':
-            self.activfunc = nn.Softmax()
+            self.activfunc = nn.Softmax(1)
         else:
             raise NotImplementedError(f'This activation func option [{self.out_activ}] is not implemented by pytorch mode.')
 
